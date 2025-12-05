@@ -7,12 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import com.example.lab_1.databinding.FragmentSettingsBinding
 
 class SettingsFragment : Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private val TAG = "SettingsFragment"
+
+    private val vm: SettingsViewModel by activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); Log.i(TAG, "onCreate") }
 
@@ -26,17 +29,17 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         Log.i(TAG, "onViewCreated")
 
-        binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
-            val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        vm.isDarkTheme.observe(viewLifecycleOwner) { isDark ->
+            if (binding.switchTheme.isChecked != isDark) binding.switchTheme.isChecked = isDark
+            val mode = if (isDark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
             AppCompatDelegate.setDefaultNightMode(mode)
-            Log.i(TAG, "Theme switched: ${if (isChecked) "Dark" else "Light"}")
+        }
+
+        binding.switchTheme.setOnCheckedChangeListener { _, checked ->
+            vm.setDarkTheme(checked)
         }
     }
 
-    override fun onStart() { super.onStart(); Log.i(TAG, "onStart") }
-    override fun onResume() { super.onResume(); Log.i(TAG, "onResume") }
-    override fun onPause() { Log.i(TAG, "onPause"); super.onPause() }
-    override fun onStop() { Log.i(TAG, "onStop"); super.onStop() }
     override fun onDestroyView() { Log.i(TAG, "onDestroyView"); _binding = null; super.onDestroyView() }
     override fun onDestroy() { Log.i(TAG, "onDestroy"); super.onDestroy() }
 }
