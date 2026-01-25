@@ -8,12 +8,14 @@ fun MessageDto.toEntity(): MessageEntity =
     MessageEntity(
         id = id,
         author = email,
-        text = body
+        text = body,
+        liked = false
     )
 
 fun MessageEntity.toDomain(): Message =
     Message(
         id = id,
         author = author,
-        text = text
+        text = text,
+        liked = liked
     )

@@ -46,20 +46,34 @@ class FeedFragment : Fragment() {
 
         viewModel = ViewModelProvider(
             this,
-            FeedViewModelFactory(repository)
+            FeedViewModelFactory(requireActivity().application, repository)
         )[FeedViewModel::class.java]
 
-        adapter = MessageAdapter()
+        adapter = MessageAdapter { msg ->
+            viewModel.onLikeClicked(msg)
+        }
+
         binding.rvMessages.layoutManager = LinearLayoutManager(requireContext())
         binding.rvMessages.adapter = adapter
 
-        binding.btnRefresh.setOnClickListener {
+        binding.fabRefresh.setOnClickListener {
             viewModel.refresh()
         }
 
         lifecycleScope.launch {
             viewModel.state.collectLatest { state ->
                 adapter.submitList(state.messages)
+
+                state.toastMessage?.let { msg ->
+                    com.google.android.material.snackbar.Snackbar
+                        .make(
+                            binding.root,
+                            msg,
+                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                        )
+                        .show()
+                    viewModel.consumeToastMessage()
+                }
             }
         }
     }

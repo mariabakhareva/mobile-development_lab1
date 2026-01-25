@@ -23,18 +23,24 @@ class MessageRepository(
 
     suspend fun refreshMessages(): Result<Unit> {
         return try {
+            val likedMap = dao.getLikedMap().associate { it.id to it.liked }
+
             val dto = api.getMessages()
-            val entities = dto.map { it.toEntity() }
+            val entities = dto.map { it.toEntity() }.map { e ->
+                e.copy(liked = likedMap[e.id] ?: false)
+            }
 
             dao.clearAll()
             dao.insertAll(entities)
 
-            Log.i("MessageRepository", "Loaded ${entities.size} messages from API")
-
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("MessageRepository", "Failed to refresh", e)
             Result.failure(e)
         }
     }
+
+    suspend fun toggleLike(id: Int, newValue: Boolean) {
+        dao.setLiked(id, newValue)
+    }
+
 }

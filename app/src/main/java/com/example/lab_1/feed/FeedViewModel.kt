@@ -1,10 +1,12 @@
 package com.example.lab_1.ui.feed
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab_1.data.repository.MessageRepository
 import com.example.lab_1.domain.model.Message
+import com.example.lab_1.utils.NetworkUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -14,12 +16,15 @@ import kotlinx.coroutines.launch
 data class FeedUiState(
     val isLoading: Boolean = false,
     val messages: List<Message> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val isOnline: Boolean = true,
+    val toastMessage: String? = null
 )
 
 class FeedViewModel(
+    application: Application,
     private val repository: MessageRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(FeedUiState())
     val state: StateFlow<FeedUiState> = _state
@@ -27,7 +32,8 @@ class FeedViewModel(
     init {
         Log.i("FeedViewModel", "init")
         observeMessages()
-        refresh() // первая загрузка с сервера
+        observeNetwork()
+        refresh()
     }
 
     private fun observeMessages() {
@@ -43,9 +49,46 @@ class FeedViewModel(
         }
     }
 
+    private fun observeNetwork() {
+        viewModelScope.launch {
+            NetworkUtils.networkStatusFlow(getApplication()).collect { online ->
+                val wasOnline = _state.value.isOnline
+
+                _state.value = _state.value.copy(isOnline = online)
+
+                if (!wasOnline && online) {
+                    _state.value = _state.value.copy(
+                        toastMessage = "Network is back. Syncing..."
+                    )
+                    refresh()
+                }
+
+                if (wasOnline && !online) {
+                    _state.value = _state.value.copy(
+                        toastMessage = "No network. Only saved messages are shown"
+                    )
+                }
+            }
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
+            val onlineNow = NetworkUtils.isOnline(getApplication())
+
+            _state.value = _state.value.copy(
+                isLoading = true,
+                error = null,
+                isOnline = onlineNow
+            )
+
+            if (!onlineNow) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    toastMessage = "No network. Only saved messages are shown"
+                )
+                return@launch
+            }
 
             val result = repository.refreshMessages()
 
@@ -55,6 +98,16 @@ class FeedViewModel(
                 _state.value = _state.value.copy(error = e.message)
             }
         }
+    }
+
+    fun onLikeClicked(message: Message) {
+        viewModelScope.launch {
+            repository.toggleLike(message.id, !message.liked)
+        }
+    }
+
+    fun consumeToastMessage() {
+        _state.value = _state.value.copy(toastMessage = null)
     }
 
     override fun onCleared() {

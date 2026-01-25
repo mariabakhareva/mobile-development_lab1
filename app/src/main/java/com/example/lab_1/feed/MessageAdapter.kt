@@ -5,11 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.lab_1.R
 import com.example.lab_1.databinding.ItemMessageBinding
 import com.example.lab_1.domain.model.Message
 
-class MessageAdapter :
-    ListAdapter<Message, MessageAdapter.MessageViewHolder>(DiffCallback) {
+class MessageAdapter(
+    private val onLikeClick: (Message) -> Unit
+) : ListAdapter<Message, MessageAdapter.MessageViewHolder>(DiffCallback) {
 
     object DiffCallback : DiffUtil.ItemCallback<Message>() {
         override fun areItemsTheSame(oldItem: Message, newItem: Message) =
@@ -26,6 +28,14 @@ class MessageAdapter :
         fun bind(msg: Message) {
             binding.tvAuthor.text = msg.author
             binding.tvText.text = msg.text
+
+            binding.btnLike.setImageResource(
+                if (msg.liked) R.drawable.ic_like_filled else R.drawable.ic_like_outline
+            )
+
+            binding.btnLike.setOnClickListener {
+                onLikeClick(msg)
+            }
         }
     }
 

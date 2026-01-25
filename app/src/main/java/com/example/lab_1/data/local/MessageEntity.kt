@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class MessageEntity(
     @PrimaryKey val id: Int,
     val author: String,
-    val text: String
+    val text: String,
+    val liked: Boolean = false
 )
